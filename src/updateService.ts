@@ -22,6 +22,11 @@ const base_url = 'https://reqres.in/api/users'
 
 export async function update(): Promise<void> {
   const data = await fetchUsers();
+
+  if (data.length < 1) {
+    return;
+  }
+
   insertUsers(data.map(u => {
     const external_id = u.id;
     delete u.id;
@@ -32,6 +37,8 @@ export async function update(): Promise<void> {
   }));
 }
 
+const etagStore = new Map<string, string>();
+
 export async function fetchUsers(): Promise<UserResponse[]> {
   logger.info('Fetching users from Api')
   const result: UserResponse[] = []
@@ -39,15 +46,31 @@ export async function fetchUsers(): Promise<UserResponse[]> {
   let total_pages = 1;
   let page = 1;
   while (page <= total_pages) {
-    const url = base_url + `?page=${page}&per_page=40`
+    const url = base_url + `?page=${page}&per_page=3`
     logger.debug('Get request', { url });
 
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'if-none-match': etagStore.get(url)
+      }
+    });
+
+    if (response.status === 304) {
+      logger.info('External API cache hit');
+      page += 1;
+      continue;
+    }
 
     if (response.status > 300 && response.status < 200) {
       logger.error('External API responded with non-200 status code', { code: response.status, message: response.statusText })
       return null;
     }
+
+    console.log(response.headers.get('etag'))
+    if (response.headers.get('etag')) {
+      etagStore.set(url, response.headers.get('etag'));
+    }
+
     const data = await response.json() as ApiResponse;
 
     result.push(...data.data);

@@ -12,23 +12,30 @@ export interface UserModel {
 }
 
 export async function insertUsers(users: Omit<UserModel, 'id'>[]): Promise<void> {
+  const batchSize = 1000;
   logger.info('Inserting users into database', { length: users.length });
-  const values = users.map(u => `(${u.external_id}, '${u.email}', '${u.first_name}', '${u.last_name}', '${u.avatar}')`)
+
+
+  for (let start = 0; start < users.length; start += batchSize) {
+    const values = users
+    .slice(start, start + batchSize)
+    .map(u => `(${u.external_id}, '${u.email}', '${u.first_name}', '${u.last_name}', '${u.avatar}')`)
     .join(',');
 
-  const query = `
-    insert into Users (external_id, email, first_name, last_name, avatar) values
-    ${values}
-    on conflict (external_id) do update set
-      email=excluded.email,
-      first_name=excluded.first_name,
-      last_name=excluded.last_name,
-      avatar=excluded.avatar;
-  `;
+    const query = `
+      insert into Users (external_id, email, first_name, last_name, avatar) values
+      ${values}
+      on conflict (external_id) do update set
+        email=excluded.email,
+        first_name=excluded.first_name,
+        last_name=excluded.last_name,
+        avatar=excluded.avatar;
+    `;
 
-  const res = await pool.query(query);
+    const res = await pool.query(query);
 
-  logger.info('Inserted successfully', { rowsProcessed: res.rowCount });
+    logger.info('Inserted successfully', { rowsProcessed: res.rowCount });
+  }
 }
 
 export async function listUsers(searchQuery: string, page: number): Promise<UserModel[]> {

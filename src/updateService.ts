@@ -39,11 +39,11 @@ export async function update(): Promise<void> {
 
 const etagStore = new Map<string, string>();
 
+let total_pages = 1;
 export async function fetchUsers(): Promise<UserResponse[]> {
   logger.info('Fetching users from Api')
   const result: UserResponse[] = []
 
-  let total_pages = 1;
   let page = 1;
   while (page <= total_pages) {
     const url = base_url + `?page=${page}&per_page=3`
@@ -66,7 +66,6 @@ export async function fetchUsers(): Promise<UserResponse[]> {
       return null;
     }
 
-    console.log(response.headers.get('etag'))
     if (response.headers.get('etag')) {
       etagStore.set(url, response.headers.get('etag'));
     }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Users</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+</head>
+<body class="bg-gray-100">
+    <script src="https://unpkg.com/vue@2"></script>
+    <script src="https://unpkg.com/vue-infinite-loading@^2/dist/vue-infinite-loading.js"></script>
+
+    <div id="app">
+        <div class="h-20 p-6 flex items-center bg-white">
+            <form @submit.prevent="search" class="mx-auto flex w-full lg:w-1/2">
+                <input type="text" v-model="query" class="flex-1 mr-2 text-gray-700 font-semibold text-lg rounded-full border border-purple-200 hover:bg-gray-100 hover:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2">
+                <button type="submit" class="px-4 py-2 text-lg text-purple-600 font-semibold rounded-full border border-purple-200 hover:text-white hover:bg-purple-600 hover:border-transparent focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2">Search</button>
+            </form>
+        </div>
+        <hr>
+        <div v-if="users.length > 0" class="container mx-auto w-full md:w-3/4 space-y-4 pt-8">
+            <div v-for="user in users" :key="user.id" class="rounded-xl bg-white shadow-lg p-6 flex flex-row">
+                <div class="mr-4">
+                    <img :src="user.avatar" class="rounded-full">
+                </div>
+                <div>
+                    <div class="text-2xl font-semibold text-gray-700">
+                        {{ user.first_name }}
+                        {{ user.last_name }}
+                    </div>
+                    <div class="text-xl text-gray-500">
+                        {{ user.email }}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <infinite-loading :identifier="infiniteId" @infinite="loadUsers"></infinite-loading>
+    </div>
+
+    <script type="module">
+        var app = new Vue({
+            el: '#app',
+            data() {
+                return {
+                    query: '',
+                    users: [],
+                    page: 1,
+                    infiniteId: +new Date()
+                }
+            },
+            methods: {
+                search() {
+                    this.page = 1;
+                    this.users = [];
+                    this.infiniteId += 1;
+                },
+                async loadUsers($state) {
+                    const response = await fetch(`/users?page=${this.page}&search=${this.query}`)
+                    const data = await response.json();
+
+                    if (data.length > 0) {
+                        this.page += 1;
+                        this.users.push(...data);
+                        $state.loaded();
+                    } else {
+                        $state.complete();
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>

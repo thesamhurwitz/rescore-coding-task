@@ -43,6 +43,8 @@ async function startServer() {
     res.status(200).end();
   });
 
+  app.use(express.static('web'));
+
   app.listen(port);
 
   cron.schedule('* * * * *', async () => {
